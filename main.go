@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/joho/godotenv"
 )
 
@@ -15,6 +18,30 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
+	ctx := context.Background()
+	// Sets your Google Cloud Platform project ID.
+	projectID := "YOUR_PROJECT_ID"
+
+	// Creates a client.
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+
+	bucketName := "my-new-bucket"
+
+	// Creates a Bucket instance.
+	bucket := client.Bucket(bucketName)
+
+	// Creates the new bucket.
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+	if err := bucket.Create(ctx, projectID, nil); err != nil {
+		log.Fatalf("Failed to create bucket: %v", err)
+	}
+
+	fmt.Printf("Bucket %v created.\n", bucketName)
 
 	BearerToken := os.Getenv("BEARER_TOKEN")
 
@@ -27,8 +54,8 @@ func main() {
 	fmt.Printf("%s\n", BearerToken)
 	req.Header.Add("Authorization", "Bearer "+BearerToken)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
 
 	if err != nil {
 		panic(err)
