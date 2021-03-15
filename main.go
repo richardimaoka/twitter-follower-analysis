@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,15 +14,44 @@ import (
 	"github.com/joho/godotenv"
 )
 
+func uploadFile(w io.Writer, bucket, object string) error {
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return fmt.Errorf("storage NewClient: %v", err)
+	}
+	defer client.Close()
+
+	f, err := os.Open("notes.txt")
+	if err != nil {
+		return fmt.Errorf("os.Open: %v", err)
+	}
+	defer f.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*50)
+	defer cancel()
+
+	wc := client.Bucket(bucket).Object(object).NewWriter(ctx)
+	if _, err = io.Copy(wc, f); err != nil {
+		return fmt.Errorf("io.Copy: %v", err)
+	}
+	if err := wc.Close(); err != nil {
+		return fmt.Errorf("Write.Close: %v", err)
+	}
+	fmt.Fprintf(w, "Blob %v uploaded.\n", object)
+	return nil
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
+	fmt.Println("GAC = ", os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 	ctx := context.Background()
 	// Sets your Google Cloud Platform project ID.
-	projectID := "YOUR_PROJECT_ID"
+	projectID := "richard-twitter-extraction"
 
 	// Creates a client.
 	client, err := storage.NewClient(ctx)
@@ -29,18 +59,19 @@ func main() {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	bucketName := "my-new-bucket"
+	bucketName := "my-new-buckettttttttttt-francepan"
 
 	// Creates a Bucket instance.
 	bucket := client.Bucket(bucketName)
 
 	// Creates the new bucket.
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
-	defer cancel()
-	if err := bucket.Create(ctx, projectID, nil); err != nil {
-		log.Fatalf("Failed to create bucket: %v", err)
-	}
+	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
+	// defer cancel()
+	// if err := bucket.Create(ctx, projectID, nil); err != nil {
+	// 	log.Fatalf("Failed to create bucket: %v", err)
+	// }
 
+	bucket.Object("newfile")
 	fmt.Printf("Bucket %v created.\n", bucketName)
 
 	BearerToken := os.Getenv("BEARER_TOKEN")
