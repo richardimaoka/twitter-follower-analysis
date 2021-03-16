@@ -81,29 +81,21 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	fmt.Println("GAC = ", os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
-
 	projectId := "richard-twitter-extraction"
 	bucket := "my-new-buckettttttttttt-francepddan"
+	userId := "2875908842"
+	object := "twitttt.json"
 
-	createGcsBucketIfNotExist(projectId, bucket)
+	jsonReader, err := fetchJson(userId, os.Getenv("BEARER_TOKEN"))
+	if err != nil {
+		log.Fatalf("Failed to fetch json %v\n", err)
+	}
+	a
+	if err := createGcsBucketIfNotExist(projectId, bucket); err != nil {
+		log.Fatalf("Failed to create a GCS bucket: %v\n", err)
+	}
 
-	// // Creates the new bucket.
-	// ctx, cancel := context.WithTimeout(ctx, time.Second*20)
-	// defer cancel()
-	// if err := bucket.Create(ctx, projectID, nil); err != nil {
-	// 	log.Fatalf("Failed to create bucket: %v", err)
-	// }
-
-	// bucket.Object("newfile")
-	// fmt.Printf("Bucket %v created.\n", bucketName)
-
-	// BearerToken := os.Getenv("BEARER_TOKEN")
-
-	// body, err := ioutil.ReadAll(resp.Body)
-
-	// if err != nil {
-	// 	log.Fatal("HTTP failed")
-	// }
-	// fmt.Printf("%s", body)
+	if err := saveJsonToGCSObject(jsonReader, bucket, object); err != nil {
+		log.Fatalf("Failed to save json to GCS object: %v\n", err)
+	}
 }
