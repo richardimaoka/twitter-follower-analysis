@@ -4,15 +4,41 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/joho/godotenv"
 )
+
+func uploadFile(w io.Writer, bucket, object string) error {
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return fmt.Errorf("storage NewClient: %v", err)
+	}
+	defer client.Close()
+
+	f, err := os.Open("notes.txt")
+	if err != nil {
+		return fmt.Errorf("os.Open: %v", err)
+	}
+	defer f.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*49)
+	defer cancel()
+
+	wc := client.Bucket(bucket).Object(object).NewWriter(ctx)
+	if _, err = io.Copy(wc, f); err != nil {
+		return fmt.Errorf("io.Copy: %v", err)
+	}
+	if err := wc.Close(); err != nil {
+		return fmt.Errorf("Write.Close: %v", err)
+	}
+	fmt.Fprintf(w, "Blob %v uploaded.\n", object)
+	return nil
+}
 
 func saveJsonToGCSObject(jsonReader io.Reader, bucket, object string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*50)
@@ -34,31 +60,26 @@ func saveJsonToGCSObject(jsonReader io.Reader, bucket, object string) error {
 	return nil
 }
 
-func uploadFile(w io.Writer, bucket, object string) error {
-	ctx := context.Background()
+func createGcsBucketIfNotExist(projectId, bucket string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
 	client, err := storage.NewClient(ctx)
 	if err != nil {
-		return fmt.Errorf("storage NewClient: %v", err)
+		return fmt.Errorf("Failed to get a GCS client")
 	}
-	defer client.Close()
 
-	f, err := os.Open("notes.txt")
-	if err != nil {
-		return fmt.Errorf("os.Open: %v", err)
+	// Creates a Bucket handle
+	bucketHandle := client.Bucket(bucket)
+	fmt.Println("trying to fetch attrs")
+	if _, err := bucketHandle.Attrs(ctx); err == nil {
+		// bucket already exists
+		return nil
 	}
-	defer f.Close()
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*50)
-	defer cancel()
-
-	wc := client.Bucket(bucket).Object(object).NewWriter(ctx)
-	if _, err = io.Copy(wc, f); err != nil {
-		return fmt.Errorf("io.Copy: %v", err)
+	fmt.Println("trying to create a backet")
+	// Creates the new bucket.
+	if err := bucketHandle.Create(ctx, projectId, nil); err != nil {
+		log.Fatalf("Failed to create bucket: %v", err)
 	}
-	if err := wc.Close(); err != nil {
-		return fmt.Errorf("Write.Close: %v", err)
-	}
-	fmt.Fprintf(w, "Blob %v uploaded.\n", object)
 	return nil
 }
 
@@ -69,54 +90,56 @@ func main() {
 	}
 
 	fmt.Println("GAC = ", os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
-	ctx := context.Background()
-	// Sets your Google Cloud Platform project ID.
-	projectID := "richard-twitter-extraction"
 
-	// Creates a client.
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
-	}
+	createGcsBucketIfNotExist("richard-twitter-extraction", "my-new-buckettttttttttt-francepddan")
+	// ctx := context.Background()
+	// // Sets your Google Cloud Platform project ID.
+	// projectID := "richard-twitter-extraction"
 
-	bucketName := "my-new-buckettttttttttt-francepan"
+	// // Creates a client.
+	// client, err := storage.NewClient(ctx)
+	// if err != nil {
+	// 	log.Fatalf("Failed to create client: %v", err)
+	// }
 
-	// Creates a Bucket instance.
-	bucket := client.Bucket(bucketName)
+	// bucketName := "my-new-buckettttttttttt-francepan"
 
-	// Creates the new bucket.
-	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
+	// // Creates a Bucket instance.
+	// bucket := client.Bucket(bucketName)
+
+	// // Creates the new bucket.
+	// ctx, cancel := context.WithTimeout(ctx, time.Second*20)
 	// defer cancel()
 	// if err := bucket.Create(ctx, projectID, nil); err != nil {
 	// 	log.Fatalf("Failed to create bucket: %v", err)
 	// }
 
-	bucket.Object("newfile")
-	fmt.Printf("Bucket %v created.\n", bucketName)
+	// bucket.Object("newfile")
+	// fmt.Printf("Bucket %v created.\n", bucketName)
 
-	BearerToken := os.Getenv("BEARER_TOKEN")
+	// BearerToken := os.Getenv("BEARER_TOKEN")
 
-	UserId := "2875908842"
-	UserFields := "created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld"
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitter.com/2/users/%s/followers?max_results=1000&user.fields=%s", UserId, UserFields), nil)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("%s\n", BearerToken)
-	req.Header.Add("Authorization", "Bearer "+BearerToken)
+	// UserId := "2875908842"
+	// UserFields := "created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld"
+	// req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitter.com/2/users/%s/followers?max_results=1000&user.fields=%s", UserId, UserFields), nil)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Printf("%s\n", BearerToken)
+	// req.Header.Add("Authorization", "Bearer "+BearerToken)
 
-	httpClient := &http.Client{}
-	resp, err := httpClient.Do(req)
+	// httpClient := &http.Client{}
+	// resp, err := httpClient.Do(req)
 
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	// body, err := ioutil.ReadAll(resp.Body)
 
-	if err != nil {
-		log.Fatal("HTTP failed")
-	}
-	fmt.Printf("%s", body)
+	// if err != nil {
+	// 	log.Fatal("HTTP failed")
+	// }
+	// fmt.Printf("%s", body)
 }
