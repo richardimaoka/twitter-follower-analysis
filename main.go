@@ -14,6 +14,26 @@ import (
 	"github.com/joho/godotenv"
 )
 
+func saveJsonToGCSObject(jsonReader io.Reader, bucket, object string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*50)
+	defer cancel()
+
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return fmt.Errorf("storage NewClient: %v", err)
+	}
+	defer client.Close()
+
+	writer := client.Bucket(bucket).Object(object).NewWriter(ctx)
+	if _, err = io.Copy(writer, jsonReader); err != nil {
+		return fmt.Errorf("Failed to writer into GCS bucket = %s object = %s by io.Copy: %v", bucket, object, err)
+	}
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("Failed to close GCS writer by Write.Close: %v", err)
+	}
+	return nil
+}
+
 func uploadFile(w io.Writer, bucket, object string) error {
 	ctx := context.Background()
 	client, err := storage.NewClient(ctx)
