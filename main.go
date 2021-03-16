@@ -12,34 +12,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func uploadFile(w io.Writer, bucket, object string) error {
-	ctx := context.Background()
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		return fmt.Errorf("storage NewClient: %v", err)
-	}
-	defer client.Close()
-
-	f, err := os.Open("notes.txt")
-	if err != nil {
-		return fmt.Errorf("os.Open: %v", err)
-	}
-	defer f.Close()
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*49)
-	defer cancel()
-
-	wc := client.Bucket(bucket).Object(object).NewWriter(ctx)
-	if _, err = io.Copy(wc, f); err != nil {
-		return fmt.Errorf("io.Copy: %v", err)
-	}
-	if err := wc.Close(); err != nil {
-		return fmt.Errorf("Write.Close: %v", err)
-	}
-	fmt.Fprintf(w, "Blob %v uploaded.\n", object)
-	return nil
-}
-
 func saveJsonToGCSObject(jsonReader io.Reader, bucket, object string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*50)
 	defer cancel()
