@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -55,6 +56,25 @@ func createGcsBucketIfNotExist(projectId, bucket string) error {
 	return nil
 }
 
+func fetchJson(userId, bearerToken string) (io.Reader, error) {
+	UserFields := "created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld"
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitter.com/2/users/%s/followers?max_results=1000&user.fields=%s", userId, UserFields), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+bearerToken)
+
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return resp.Body, nil
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -63,21 +83,10 @@ func main() {
 
 	fmt.Println("GAC = ", os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 
-	createGcsBucketIfNotExist("richard-twitter-extraction", "my-new-buckettttttttttt-francepddan")
-	// ctx := context.Background()
-	// // Sets your Google Cloud Platform project ID.
-	// projectID := "richard-twitter-extraction"
+	projectId := "richard-twitter-extraction"
+	bucket := "my-new-buckettttttttttt-francepddan"
 
-	// // Creates a client.
-	// client, err := storage.NewClient(ctx)
-	// if err != nil {
-	// 	log.Fatalf("Failed to create client: %v", err)
-	// }
-
-	// bucketName := "my-new-buckettttttttttt-francepan"
-
-	// // Creates a Bucket instance.
-	// bucket := client.Bucket(bucketName)
+	createGcsBucketIfNotExist(projectId, bucket)
 
 	// // Creates the new bucket.
 	// ctx, cancel := context.WithTimeout(ctx, time.Second*20)
@@ -90,23 +99,6 @@ func main() {
 	// fmt.Printf("Bucket %v created.\n", bucketName)
 
 	// BearerToken := os.Getenv("BEARER_TOKEN")
-
-	// UserId := "2875908842"
-	// UserFields := "created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld"
-	// req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitter.com/2/users/%s/followers?max_results=1000&user.fields=%s", UserId, UserFields), nil)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Printf("%s\n", BearerToken)
-	// req.Header.Add("Authorization", "Bearer "+BearerToken)
-
-	// httpClient := &http.Client{}
-	// resp, err := httpClient.Do(req)
-
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer resp.Body.Close()
 
 	// body, err := ioutil.ReadAll(resp.Body)
 
