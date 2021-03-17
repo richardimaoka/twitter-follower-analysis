@@ -43,12 +43,10 @@ func createGcsBucketIfNotExist(projectId, bucket string) error {
 
 	// Creates a Bucket handle
 	bucketHandle := client.Bucket(bucket)
-	fmt.Println("trying to fetch attrs")
 	if _, err := bucketHandle.Attrs(ctx); err == nil {
 		// bucket already exists
 		return nil
 	}
-	fmt.Println("trying to create a backet")
 	// Creates the new bucket.
 	if err := bucketHandle.Create(ctx, projectId, nil); err != nil {
 		log.Fatalf("Failed to create bucket: %v", err)
