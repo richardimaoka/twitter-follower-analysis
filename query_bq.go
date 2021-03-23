@@ -74,10 +74,11 @@ func pub(projectId string) error {
 	topic := client.Topic(topicId)
 	res := topic.Publish(ctx, &pubsub.Message{Data: []byte("payload")})
 
-	_, err = res.Get(ctx)
+	serverId, err := res.Get(ctx)
 	if err != nil {
 		return err
 	}
+	fmt.Printf("pub done %v", serverId)
 
 	return nil
 }
@@ -93,4 +94,9 @@ func main() {
 		fmt.Printf("Error in queryBasic %v", err)
 	}
 	fmt.Println(userId)
+
+	err = pub("richard-twitter-extraction")
+	if err != nil {
+		fmt.Printf("%v", err)
+	}
 }
