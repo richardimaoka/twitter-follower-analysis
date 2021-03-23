@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"cloud.google.com/go/bigquery"
+	"cloud.google.com/go/pubsub"
 	"github.com/joho/godotenv"
 	"google.golang.org/api/iterator"
 )
@@ -17,13 +18,12 @@ type User struct {
 }
 
 // queryBasic demonstrates issuing a query and reading results.
-func queryBasic(nthRow int, w io.Writer, projectID string) error {
+func queryBasic(nthRow int, w io.Writer, projectID string) (*User, error) {
 	fmt.Println("asd")
-	// projectID := "my-project-id"
 	ctx := context.Background()
 	client, err := bigquery.NewClient(ctx, projectID)
 	if err != nil {
-		return fmt.Errorf("bigquery.NewClient: %v", err)
+		return nil, err
 	}
 	defer client.Close()
 
@@ -34,33 +34,51 @@ func queryBasic(nthRow int, w io.Writer, projectID string) error {
 	// Run the query and print results when the query job is completed.
 	job, err := q.Run(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	status, err := job.Wait(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := status.Err(); err != nil {
-		return err
+		return nil, err
 	}
 	it, err := job.Read(ctx)
 
 	row := 0
+	var user User
 	for {
-		var user User
 		err := it.Next(&user)
 		if err == iterator.Done {
 			break
 		}
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if row == nthRow {
-			fmt.Fprintln(w, user)
 			break
 		}
 		row++
 	}
+	return &user, nil
+}
+
+func pub(projectId string) error {
+	ctx := context.Background()
+	client, err := pubsub.NewClient(ctx, projectId)
+	if err != nil {
+		return err
+	}
+
+	topicId := "user-id"
+	topic := client.Topic(topicId)
+	res := topic.Publish(ctx, &pubsub.Message{Data: []byte("payload")})
+
+	_, err = res.Get(ctx)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -70,8 +88,9 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	err = queryBasic(1, os.Stdout, "richard-twitter-extraction")
+	userId, err := queryBasic(1, os.Stdout, "richard-twitter-extraction")
 	if err != nil {
 		fmt.Printf("Error in queryBasic %v", err)
 	}
+	fmt.Println(userId)
 }
