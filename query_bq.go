@@ -17,7 +17,7 @@ type User struct {
 }
 
 // queryBasic demonstrates issuing a query and reading results.
-func queryBasic(w io.Writer, projectID string) error {
+func queryBasic(nthRow int, w io.Writer, projectID string) error {
 	fmt.Println("asd")
 	// projectID := "my-project-id"
 	ctx := context.Background()
@@ -44,16 +44,22 @@ func queryBasic(w io.Writer, projectID string) error {
 		return err
 	}
 	it, err := job.Read(ctx)
+
+	row := 0
 	for {
-		var row User
-		err := it.Next(&row)
+		var user User
+		err := it.Next(&user)
 		if err == iterator.Done {
 			break
 		}
 		if err != nil {
 			return err
 		}
-		fmt.Fprintln(w, row)
+		if row == nthRow {
+			fmt.Fprintln(w, user)
+			break
+		}
+		row++
 	}
 	return nil
 }
@@ -64,7 +70,7 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	err = queryBasic(os.Stdout, "richard-twitter-extraction")
+	err = queryBasic(1, os.Stdout, "richard-twitter-extraction")
 	if err != nil {
 		fmt.Printf("Error in queryBasic %v", err)
 	}
