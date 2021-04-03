@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/joho/godotenv"
 )
@@ -77,11 +78,22 @@ func fetchAndSaveJson(userId, bearerToken, bucket, object string) error {
 	return nil
 }
 
-type PubSubMessage struct {
-	Data []byte `json:"data"`
-}
+func FollowingListSave(ctx context.Context, m pubsub.Message) error {
+	projectId := os.Getenv("GCP_PROJECT")
+	bearerToken := os.Getenv("BEARER_TOKEN")
+	userId := m.Attributes["userId"] //later we should use json parse with Go struct, as that brings better typing than map[string]string
+	//seqNum := m.Attributes["seqNum"]
 
-func FollowingListSave(ctx context.Context, m PubSubMessage) error {
+	bucket := "my-new-buckettttttttttt-francepddan"
+	object := "twitttt.json"
+
+	if err := createGcsBucketIfNotExist(projectId, bucket); err != nil {
+		log.Fatalf("Failed to create a GCS bucket: %v\n", err)
+	}
+
+	if err := fetchAndSaveJson(userId, bearerToken, bucket, object); err != nil {
+		log.Fatalf("Failed to fetch and save json %v\n", err)
+	}
 	return nil
 }
 
