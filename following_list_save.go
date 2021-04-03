@@ -77,6 +77,14 @@ func fetchAndSaveJson(userId, bearerToken, bucket, object string) error {
 	return nil
 }
 
+type PubSubMessage struct {
+	Data []byte `json:"data"`
+}
+
+func FollowingListSave(ctx context.Context, m PubSubMessage) error {
+	return nil
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
