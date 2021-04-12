@@ -12,7 +12,6 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
-	"github.com/joho/godotenv"
 )
 
 func saveJsonToGCSObject(jsonReader io.Reader, bucket, object string) error {
@@ -109,24 +108,4 @@ func FollowingListSave(ctx context.Context, m pubsub.Message) error {
 		log.Fatalf("Failed to fetch and save json %v\n", err)
 	}
 	return nil
-}
-
-func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	projectId := "richard-twitter-extraction"
-	bucket := "my-new-buckettttttttttt-francepddan"
-	userId := "2875908842"
-	object := "twitttt.json"
-
-	if err := createGcsBucketIfNotExist(projectId, bucket); err != nil {
-		log.Fatalf("Failed to create a GCS bucket: %v\n", err)
-	}
-
-	if err := fetchAndSaveJson(userId, os.Getenv("BEARER_TOKEN"), bucket, object); err != nil {
-		log.Fatalf("Failed to fetch and save json %v\n", err)
-	}
 }
