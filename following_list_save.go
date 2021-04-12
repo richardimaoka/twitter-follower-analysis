@@ -10,9 +10,59 @@ import (
 	"os"
 	"time"
 
+	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/iterator"
 )
+
+type User struct {
+	UserId string `bigquery:"user_id"`
+}
+
+// queryBasic demonstrates issuing a query and reading results.
+func queryBq(cursor int, projectID string) (*User, error) {
+	ctx := context.Background()
+	client, err := bigquery.NewClient(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	q := client.Query("SELECT user_id FROM `richard-twitter-extraction.twitter.user_ids`")
+	// Location must match that of the dataset(s) referenced in the query.
+	q.Location = "US"
+	// Run the query and print results when the query job is completed.
+	job, err := q.Run(ctx)
+	if err != nil {
+		return nil, err
+	}
+	status, err := job.Wait(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := status.Err(); err != nil {
+		return nil, err
+	}
+	it, err := job.Read(ctx)
+
+	row := 0
+	var user User
+	for {
+		err := it.Next(&user)
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if row == cursor {
+			break
+		}
+		row++
+	}
+	return &user, nil
+}
 
 func saveJsonToGCSObject(jsonReader io.Reader, bucket, object string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*50)
@@ -79,7 +129,6 @@ func fetchAndSaveJson(userId, bearerToken, bucket, object string) error {
 }
 
 type Iteration struct {
-	UserId              string `json:"user_id"`
 	UserCursor          int    `json:"user_cursor"`
 	NextPagenationToken string `json:"next_pagenation_token"`
 }
@@ -97,7 +146,7 @@ func FollowingListSave(ctx context.Context, m pubsub.Message) error {
 	bucket := "my-new-buckettttttttttt-francepddan"
 	object := "twitttt.json"
 
-	//bq: if userId, err := queryBq(userCursor)
+	userId, err := queryBq(i.UserCursor, projectId)
 
 	//maybe not needed, and assume that the bucket is creaated beforehand?
 	if err := createGcsBucketIfNotExist(projectId, bucket); err != nil {
