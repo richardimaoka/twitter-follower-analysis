@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -78,15 +79,28 @@ func fetchAndSaveJson(userId, bearerToken, bucket, object string) error {
 	return nil
 }
 
+type Iteration struct {
+	UserId              string `json:"user_id"`
+	UserCursor          int    `json:"user_cursor"`
+	NextPagenationToken string `json:"next_pagenation_token"`
+}
+
 func FollowingListSave(ctx context.Context, m pubsub.Message) error {
 	projectId := os.Getenv("GCP_PROJECT")
 	bearerToken := os.Getenv("BEARER_TOKEN")
-	userId := m.Attributes["userId"] //later we should use json parse with Go struct, as that brings better typing than map[string]string
-	//seqNum := m.Attributes["seqNum"]
+
+	var i Iteration
+	err := json.Unmarshal([]byte(m.Data), &i)
+	if err != nil {
+		log.Fatalf("error unmarshaling json %v", m.Data)
+	}
 
 	bucket := "my-new-buckettttttttttt-francepddan"
 	object := "twitttt.json"
 
+	//bq: if userId, err := queryBq(userCursor)
+
+	//maybe not needed, and assume that the bucket is creaated beforehand?
 	if err := createGcsBucketIfNotExist(projectId, bucket); err != nil {
 		log.Fatalf("Failed to create a GCS bucket: %v\n", err)
 	}
