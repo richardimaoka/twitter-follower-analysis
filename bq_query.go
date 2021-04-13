@@ -28,9 +28,9 @@ func QueryIntoBq(ctx context.Context, client *bigquery.Client, cursor int) (stri
 	}
 
 	//look for the matching row
-	var user User
+	var u user
 	for row := 0; ; row++ {
-		err := it.Next(&user)
+		err := it.Next(&u)
 		if err == iterator.Done {
 			break
 		}
@@ -38,35 +38,34 @@ func QueryIntoBq(ctx context.Context, client *bigquery.Client, cursor int) (stri
 			return "", err
 		}
 		if row == cursor {
-			return user.UserId, nil
+			return u.UserId, nil
 		}
 	}
 
 	return "", errors.New("No matching row in users BQ table")
 }
 
-// queryBasic demonstrates issuing a query and reading results.
-func queryBq2(cursor int, projectID string) (*User, error) {
-	ctx := context.Background()
-	client, err := bigquery.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
-
-	return &user, nil
-}
-
 func BqQuery(ctx context.Context, m pubsub.Message) error {
 	projectId := os.Getenv("GCP_PROJECT")
 
-	var i Iteration
-	err := json.Unmarshal([]byte(m.Data), &i)
+	var userCursor int
+	err := json.Unmarshal([]byte(m.Data), &userCursor)
 	if err != nil {
-		log.Fatalf("error unmarshaling json %v", m.Data)
+		log.Fatalf("error getting user cursor value from %v", m.Data)
 	}
 
-	queryBq2(0, projectId)
+	ctx = context.Background()
+	client, err := bigquery.NewClient(ctx, projectId)
+	if err != nil {
+		log.Fatalf("Failed to initialize bq client:%v", err)
+	}
+	defer client.Close()
 
+	userId, err := QueryIntoBq(ctx, client, userCursor)
+	if err != nil {
+		log.Fatalf("Failed to get user Id:%v", err)
+	}
+
+	log.Printf("userId from Bq = %v", userId)
 	return nil
 }
