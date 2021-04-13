@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -32,6 +33,7 @@ func queryBq(cursor int, projectID string) (*User, error) {
 	q := client.Query("SELECT user_id FROM `richard-twitter-extraction.twitter.user_ids`")
 	// Location must match that of the dataset(s) referenced in the query.
 	q.Location = "US"
+
 	// Run the query and print results when the query job is completed.
 	job, err := q.Run(ctx)
 	if err != nil {
@@ -46,6 +48,7 @@ func queryBq(cursor int, projectID string) (*User, error) {
 	}
 	it, err := job.Read(ctx)
 
+	//look for the matching row
 	row := 0
 	var user User
 	for {
@@ -60,6 +63,10 @@ func queryBq(cursor int, projectID string) (*User, error) {
 			break
 		}
 		row++
+	}
+
+	if row < cursor {
+		return nil, errors.New("too big cursor")
 	}
 	return &user, nil
 }
@@ -146,14 +153,14 @@ func FollowingListSave(ctx context.Context, m pubsub.Message) error {
 	bucket := "my-new-buckettttttttttt-francepddan"
 	object := "twitttt.json"
 
-	userId, err := queryBq(i.UserCursor, projectId)
+	user, err := queryBq(i.UserCursor, projectId)
 
 	//maybe not needed, and assume that the bucket is creaated beforehand?
 	if err := createGcsBucketIfNotExist(projectId, bucket); err != nil {
 		log.Fatalf("Failed to create a GCS bucket: %v\n", err)
 	}
 
-	if err := fetchAndSaveJson(userId, bearerToken, bucket, object); err != nil {
+	if err := fetchAndSaveJson(user.UserId, bearerToken, bucket, object); err != nil {
 		log.Fatalf("Failed to fetch and save json %v\n", err)
 	}
 	return nil
