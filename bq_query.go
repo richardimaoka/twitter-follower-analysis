@@ -45,15 +45,7 @@ func QueryIntoBq(ctx context.Context, client *bigquery.Client, cursor int) (stri
 	return "", errors.New("No matching row in users BQ table")
 }
 
-func BqQuery(ctx context.Context, m pubsub.Message) error {
-	projectId := os.Getenv("GCP_PROJECT")
-
-	var userCursor int
-	err := json.Unmarshal([]byte(m.Data), &userCursor)
-	if err != nil {
-		log.Fatalf("error getting user cursor value from %v", m.Data)
-	}
-
+func BqQuery(projectId string, userCursor int) (string, error) {
 	ctx = context.Background()
 	client, err := bigquery.NewClient(ctx, projectId)
 	if err != nil {
@@ -63,9 +55,29 @@ func BqQuery(ctx context.Context, m pubsub.Message) error {
 
 	userId, err := QueryIntoBq(ctx, client, userCursor)
 	if err != nil {
-		log.Fatalf("Failed to get user Id:%v", err)
+		return "", err
 	}
 
-	log.Printf("userId from Bq = %v", userId)
-	return nil
+	return userId, nil
+}
+
+func PublishUserId(userId string) {
+
+}
+
+func QueryUserId(ctx context.Context, m pubsub.Message) {
+	projectId := os.Getenv("GCP_PROJECT")
+
+	var userCursor int
+	err := json.Unmarshal([]byte(m.Data), &userCursor)
+	if err != nil {
+		log.Fatalf("error getting user cursor value: %s\n"+"%v", err.Error(), m.Data)
+	}
+
+	userId, err := BqQuery(projectId, userCursor)
+	if err != nil {
+		log.Fatalf("error in BqQuery: %s", err.Error())
+	}
+
+	PublishUserId(userId)
 }
