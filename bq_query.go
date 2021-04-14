@@ -46,7 +46,7 @@ func QueryIntoBq(ctx context.Context, client *bigquery.Client, cursor int) (stri
 }
 
 func BqQuery(projectId string, userCursor int) (string, error) {
-	ctx = context.Background()
+	ctx := context.Background()
 	client, err := bigquery.NewClient(ctx, projectId)
 	if err != nil {
 		log.Fatalf("Failed to initialize bq client:%v", err)
@@ -61,8 +61,30 @@ func BqQuery(projectId string, userCursor int) (string, error) {
 	return userId, nil
 }
 
-func PublishUserId(userId string) {
+type twitterRequest struct {
+	UserId        string
+	NextPageToken string
+}
 
+func PublishUserId(projectId, userId string) error {
+	ctx := context.Background()
+	client, err := pubsub.NewClient(ctx, projectId)
+	if err != nil {
+		return err
+	}
+	topic := client.Topic("twitter-request")
+
+	data, err := json.Marshal(twitterRequest{userId, ""})
+	if err != nil {
+		return err
+	}
+
+	result := topic.Publish(ctx, &pubsub.Message{Data: []byte(data)})
+	_, err = result.Get(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func QueryUserId(ctx context.Context, m pubsub.Message) {
@@ -71,13 +93,16 @@ func QueryUserId(ctx context.Context, m pubsub.Message) {
 	var userCursor int
 	err := json.Unmarshal([]byte(m.Data), &userCursor)
 	if err != nil {
-		log.Fatalf("error getting user cursor value: %s\n"+"%v", err.Error(), m.Data)
+		log.Fatalf("error getting user cursor value: %v\n"+"%v", err, m.Data)
 	}
 
 	userId, err := BqQuery(projectId, userCursor)
 	if err != nil {
-		log.Fatalf("error in BqQuery: %s", err.Error())
+		log.Fatalf("error in BqQuery: %v", err)
 	}
 
-	PublishUserId(userId)
+	err = PublishUserId(projectId, userId)
+	if err != nil {
+		log.Fatalf("error publishing to PubSub: %v", err)
+	}
 }
