@@ -25,4 +25,11 @@ func TestIntMinBasic(t *testing.T) {
 	client := bqiface.AdaptClient(c)
 	defer client.Close()
 
+	userId, err := QueryIntoBq(ctx, client, 0)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("userId = %v", userId)
+
 }
