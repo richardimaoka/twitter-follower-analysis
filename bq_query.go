@@ -6,13 +6,14 @@ import (
 	"errors"
 	"log"
 	"os"
+	"strconv"
 
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/pubsub"
 	"google.golang.org/api/iterator"
 )
 
-type user struct {
+type User struct {
 	UserId string `bigquery:"user_id"`
 }
 
@@ -28,7 +29,7 @@ func QueryIntoBq(ctx context.Context, client *bigquery.Client, cursor int) (stri
 	}
 
 	//look for the matching row
-	var u user
+	var u User
 	for row := 0; ; row++ {
 		err := it.Next(&u)
 		if err == iterator.Done {
@@ -61,7 +62,7 @@ func BqQuery(projectId string, userCursor int) (string, error) {
 	return userId, nil
 }
 
-type twitterRequest struct {
+type TwitterRequest struct {
 	UserId        string
 	NextPageToken string
 }
@@ -74,7 +75,7 @@ func PublishUserId(projectId, userId string) error {
 	}
 	topic := client.Topic("twitter-request")
 
-	data, err := json.Marshal(twitterRequest{userId, ""})
+	data, err := json.Marshal(TwitterRequest{userId, ""})
 	if err != nil {
 		return err
 	}
@@ -87,13 +88,13 @@ func PublishUserId(projectId, userId string) error {
 	return nil
 }
 
-func QueryUserId(ctx context.Context, m pubsub.Message) {
+func QueryUserId(ctx context.Context, m *pubsub.Message) {
 	projectId := os.Getenv("GCP_PROJECT")
 
-	var userCursor int
-	err := json.Unmarshal([]byte(m.Data), &userCursor)
+	data := string(m.Data)
+	userCursor, err := strconv.Atoi(data)
 	if err != nil {
-		log.Fatalf("error getting user cursor value: %v\n"+"%v", err, m.Data)
+		log.Fatalf("error getting user cursor value: %v\n"+"%s", err, data)
 	}
 
 	userId, err := BqQuery(projectId, userCursor)

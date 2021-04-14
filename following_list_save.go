@@ -17,10 +17,6 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-type User struct {
-	UserId string `bigquery:"user_id"`
-}
-
 // queryBasic demonstrates issuing a query and reading results.
 func queryBq(cursor int, projectID string) (*User, error) {
 	ctx := context.Background()
