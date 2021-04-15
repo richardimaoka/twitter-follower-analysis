@@ -63,8 +63,8 @@ func BqQuery(projectId string, userCursor int) (string, error) {
 }
 
 type TwitterRequest struct {
-	UserId        string
-	NextPageToken string
+	UserId              string `json:"user_id"`
+	NextPagenationToken string `json:"next_pagenation_token"`
 }
 
 func PublishUserId(projectId, userId string) error {
