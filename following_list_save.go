@@ -108,7 +108,7 @@ func createGcsBucketIfNotExist(projectId, bucket string) error {
 	return nil
 }
 
-func fetchAndSaveJson(userId, bearerToken, bucket, object string) error {
+func fetchAndSaveJson(userId, bearerToken string) error {
 	UserFields := "created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld"
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitter.com/2/users/%s/followers?max_results=1000&user.fields=%s", userId, UserFields), nil)
 	if err != nil {
