@@ -52,6 +52,7 @@ func PublishTwitterFollowings(projectId string, byte []byte) error {
 }
 
 func RetrieveTwitterFollowings(ctx context.Context, m pubsub.Message) error {
+	projectId := os.Getenv("GCP_PROJECT")
 	bearerToken := os.Getenv("BEARER_TOKEN")
 
 	var twReq TwitterRequest
@@ -63,9 +64,14 @@ func RetrieveTwitterFollowings(ctx context.Context, m pubsub.Message) error {
 	//maybe not needed, and assume that the bucket is creaated beforehand?
 	byte, err := callTwitterAPI(twReq.UserId, bearerToken)
 	if err != nil {
-		log.Fatalf("Failed to fetch and save json %v\n", err)
+		log.Fatalf("Failed to retrieve from twitter api %v\n", err)
 	}
-	log.Printf("%v", byte)
+
+	err = PublishTwitterFollowings(projectId, byte)
+	if err != nil {
+		log.Fatalf("Failed to publish %v\n", err)
+	}
+	log.Printf("published json %v", byte)
 
 	return nil
 }
