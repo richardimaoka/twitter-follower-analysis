@@ -96,6 +96,7 @@ func QueryUserId(ctx context.Context, m *pubsub.Message) {
 	if err != nil {
 		log.Fatalf("error getting user cursor value: %v\n"+"%s", err, data)
 	}
+	log.Printf("Received pubsub message ID = %s, data = %s, converted to userCursor = %d", m.ID, m.Data)
 
 	userId, err := BqQuery(projectId, userCursor)
 	if err != nil {
