@@ -96,15 +96,17 @@ func QueryUserId(ctx context.Context, m *pubsub.Message) {
 	if err != nil {
 		log.Fatalf("error getting user cursor value: %v\n"+"%s", err, data)
 	}
-	log.Printf("Received pubsub message ID = %s, data = %s, converted to userCursor = %d", m.ID, m.Data)
+	log.Printf("Received pubsub message ID = %s, data = %s, converted to userCursor = %d", m.ID, m.Data, userCursor)
 
 	userId, err := BqQuery(projectId, userCursor)
 	if err != nil {
 		log.Fatalf("error in BqQuery: %v", err)
 	}
+	log.Printf("Retrieved from BigQuery: userId = %s", userId)
 
 	err = PublishUserId(projectId, userId)
 	if err != nil {
 		log.Fatalf("error publishing to PubSub: %v", err)
 	}
+	log.Printf("Published: userId = %s", userId)
 }
