@@ -67,7 +67,15 @@ type TwitterRequest struct {
 	NextPagenationToken string `json:"next_pagenation_token"`
 }
 
-func PublishUserId(projectId, userId string) error {
+func ConstructTwitterRequestMessage(userId string) (*pubsub.Message, error) {
+	bytes, err := json.Marshal(TwitterRequest{userId, ""})
+	if err != nil {
+		return nil, err
+	}
+	return &pubsub.Message{Data: bytes}, nil
+}
+
+func PublishUserId(projectId string, message *pubsub.Message) error {
 	ctx := context.Background()
 	client, err := pubsub.NewClient(ctx, projectId)
 	if err != nil {
@@ -75,12 +83,7 @@ func PublishUserId(projectId, userId string) error {
 	}
 	topic := client.Topic("twitter-request")
 
-	data, err := json.Marshal(TwitterRequest{userId, ""})
-	if err != nil {
-		return err
-	}
-
-	result := topic.Publish(ctx, &pubsub.Message{Data: []byte(data)})
+	result := topic.Publish(ctx, message)
 	_, err = result.Get(ctx)
 	if err != nil {
 		return err
@@ -104,9 +107,15 @@ func QueryUserId(ctx context.Context, m *pubsub.Message) {
 	}
 	log.Printf("Retrieved from BigQuery: userId = %s", userId)
 
-	err = PublishUserId(projectId, userId)
+	message, err := ConstructTwitterRequestMessage(userId)
+	if err != nil {
+		log.Fatalf("error in ConstructTwitterRequestMessage: %v", err)
+	}
+	log.Printf("Constructed message: Data = %s", *&message.Data)
+
+	err = PublishUserId(projectId, message)
 	if err != nil {
 		log.Fatalf("error publishing to PubSub: %v", err)
 	}
-	log.Printf("Published: userId = %s", userId)
+	log.Println("Published message")
 }
