@@ -91,31 +91,37 @@ func PublishUserId(projectId string, message *pubsub.Message) error {
 	return nil
 }
 
-func QueryUserId(ctx context.Context, m *pubsub.Message) {
+func QueryUserId(ctx context.Context, m *pubsub.Message) error {
 	projectId := os.Getenv("GCP_PROJECT")
 
 	data := string(m.Data)
 	userCursor, err := strconv.Atoi(data)
 	if err != nil {
 		log.Fatalf("error getting user cursor value: %v\n"+"%s", err, data)
+		return err
 	}
 	log.Printf("Received pubsub message ID = %s, data = %s, converted to userCursor = %d", m.ID, m.Data, userCursor)
 
 	userId, err := BqQuery(projectId, userCursor)
 	if err != nil {
 		log.Fatalf("error in BqQuery: %v", err)
+		return err
 	}
 	log.Printf("Retrieved from BigQuery: userId = %s", userId)
 
 	message, err := ConstructTwitterRequestMessage(userId)
 	if err != nil {
 		log.Fatalf("error in ConstructTwitterRequestMessage: %v", err)
+		return err
 	}
 	log.Printf("Constructed message: Data = %s", *&message.Data)
 
 	err = PublishUserId(projectId, message)
 	if err != nil {
 		log.Fatalf("error publishing to PubSub: %v", err)
+		return err
 	}
 	log.Println("Published message")
+
+	return nil
 }
