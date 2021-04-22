@@ -13,8 +13,7 @@ import (
 )
 
 func callTwitterAPI(userId, bearerToken string) ([]byte, error) {
-	UserFields := "created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld"
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitter.com/2/users/%s/followers?max_results=1000&user.fields=%s", userId, UserFields), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitter.com/2/users/%s/following", userId), nil)
 	if err != nil {
 		return nil, err
 	}
