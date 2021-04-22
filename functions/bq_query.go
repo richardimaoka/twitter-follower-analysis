@@ -91,7 +91,7 @@ func PublishUserId(projectId string, message *pubsub.Message) error {
 	return nil
 }
 
-func QueryUserId(ctx context.Context, m *pubsub.Message) error {
+func QueryUserId(ctx context.Context, m pubsub.Message) error {
 	projectId := os.Getenv("GCP_PROJECT")
 
 	data := string(m.Data)
