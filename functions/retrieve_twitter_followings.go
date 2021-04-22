@@ -34,7 +34,15 @@ func callTwitterAPI(userId, bearerToken string) ([]byte, error) {
 	return byte, nil
 }
 
-func PublishTwitterFollowings(projectId string, byte []byte) error {
+func ConstructSaveGcsMessage(userId string, bytes []byte) *pubsub.Message {
+	attributes := map[string]string{
+		"userId": userId,
+	}
+	return &pubsub.Message{Attributes: attributes, Data: bytes}
+
+}
+
+func PublishTwitterFollowings(projectId string, message *pubsub.Message) error {
 	ctx := context.Background()
 	client, err := pubsub.NewClient(ctx, projectId)
 	if err != nil {
@@ -42,7 +50,7 @@ func PublishTwitterFollowings(projectId string, byte []byte) error {
 	}
 	topic := client.Topic("twitter-followings")
 
-	result := topic.Publish(ctx, &pubsub.Message{Data: byte})
+	result := topic.Publish(ctx, message)
 	_, err = result.Get(ctx)
 	if err != nil {
 		return err
@@ -60,16 +68,20 @@ func RetrieveTwitterFollowings(ctx context.Context, m pubsub.Message) error {
 		log.Fatalf("error unmarshaling json %v", m.Data)
 	}
 	log.Printf("Received a pubsub message 1: m.Data = %s", m.Data)
-	log.Printf("Received a pubsub message 2: m.Data = %+v", twReq)
+	log.Printf("Received a pubsub message 2: twReq = %+v", twReq)
 
 	//maybe not needed, and assume that the bucket is creaated beforehand?
 	byte, err := callTwitterAPI(twReq.UserId, bearerToken)
 	if err != nil {
 		log.Fatalf("Failed to retrieve from twitter api %v\n", err)
 	}
-	log.Printf("Retreived a twitter responsee: %v", byte)
+	log.Printf("Retreived a twitter responsee: %s", byte)
 
-	err = PublishTwitterFollowings(projectId, byte)
+	message := ConstructSaveGcsMessage(twReq.UserId, byte)
+	log.Printf("message.Attributes = %+v", message.Attributes)
+	log.Printf("message.Data = %s", message.Data)
+
+	err = PublishTwitterFollowings(projectId, message)
 	if err != nil {
 		log.Fatalf("Failed to publish %v\n", err)
 	}
