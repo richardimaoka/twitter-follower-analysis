@@ -18,5 +18,5 @@ func main() {
 	ctx := context.Background()
 	msg := pubsub.Message{}
 	msg.Data = []byte("1")
-	functions.QueryUserId(ctx, &msg)
+	functions.QueryUserId(ctx, msg)
 }

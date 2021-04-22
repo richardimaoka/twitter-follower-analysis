@@ -59,7 +59,8 @@ func RetrieveTwitterFollowings(ctx context.Context, m pubsub.Message) error {
 	if err != nil {
 		log.Fatalf("error unmarshaling json %v", m.Data)
 	}
-	log.Printf("Received a pubsub message: m.Data = %v", twReq)
+	log.Printf("Received a pubsub message 1: m.Data = %s", m.Data)
+	log.Printf("Received a pubsub message 2: m.Data = %+v", twReq)
 
 	//maybe not needed, and assume that the bucket is creaated beforehand?
 	byte, err := callTwitterAPI(twReq.UserId, bearerToken)
