@@ -22,6 +22,7 @@ func saveOperation1(dirName, fileName string, jsonBytes []byte) error {
 	defer writer.Close()
 
 	saveOperation2(ctx, writer, jsonBytes)
+	return nil
 }
 
 func saveOperation2(ctx context.Context, writer *storage.Writer, jsonBytes []byte) error {
@@ -31,15 +32,17 @@ func saveOperation2(ctx context.Context, writer *storage.Writer, jsonBytes []byt
 	return nil
 }
 
-func SaveIntoGCS(ctx context.Context, m pubsub.Message) error {
+func SaveIntoGCS(ctx context.Context, message pubsub.Message) error {
 	projectId := os.Getenv("GCP_PROJECT")
 
-	log.Printf("Received a pubsub message: m.Attributes = %s", m.Attributes)
-	log.Printf("Received a pubsub message: m.Data = %s", m.Data)
+	log.Printf("Received a pubsub message: m.Attributes = %s", message.Attributes)
+	log.Printf("Received a pubsub message: m.Data = %s", message.Data)
 
-	err = PublishTwitterFollowings(projectId, message)
+	err := PublishTwitterFollowings(projectId, &message)
 	if err != nil {
 		log.Fatalf("Failed to publish %v\n", err)
 	}
 	log.Printf("published json")
+
+	return nil
 }

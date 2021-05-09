@@ -19,4 +19,6 @@ func main() {
 	msg := pubsub.Message{}
 	msg.Data = []byte("1")
 	functions.QueryUserId(ctx, msg)
+	//func SaveIntoGCS(ctx context.Context, message pubsub.Message) error {
+
 }
