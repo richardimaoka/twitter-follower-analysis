@@ -18,7 +18,7 @@ func main() {
 	ctx := context.Background()
 	msg := pubsub.Message{}
 	msg.Data = []byte("1")
-	functions.QueryUserId(ctx, msg)
-	//func SaveIntoGCS(ctx context.Context, message pubsub.Message) error {
+	//functions.QueryUserId(ctx, msg)
+	functions.SaveIntoGCS(ctx, msg)
 
 }
